@@ -67,6 +67,8 @@ CREATE TABLE Ansatt
   CONSTRAINT  AnsattPoststedFN FOREIGN KEY (PostNr) REFERENCES Poststed (PostNr)
 );
 
+
+
 -- Tabellstruktur for tabell Kunde
 CREATE TABLE Kunde
 (
@@ -6785,7 +6787,13 @@ INSERT INTO Ansatt (AnsNr, Fornavn, Etternavn, Adresse, PostNr, Fødselsdato, Kj
 (17, 'Karl Anton', 'Hoff', 'Furustia 3', '3840', '1997-08-03', 'M', 'Kundebehandler', '472300.00'),
 (18, 'Johanna', 'Li', 'Krogsteinveien 101A', '3841', '1996-05-17', 'K', 'Kundebehandler', '478600.00');
 
+ALTER TABLE ansatt
+    ADD COLUMN LederAnsNr INT;
 
+UPDATE ansatt SET LederAnsNr = 1 WHERE ansnr IN (2, 3);
+UPDATE ansatt SET LederAnsNr = 2 WHERE ansnr IN (6, 7);
+UPDATE ansatt SET LederAnsNr = 6 WHERE ansnr IN (11, 12);
+UPDATE ansatt SET LederAnsNr = NULL WHERE ansnr = 1;  -- top manager
 
 --
 -- Dataark for tabell Kunde
