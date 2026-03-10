@@ -197,7 +197,8 @@
     );
     ```
     **Forklaring:**
-    *   *... Skriv din forklaring her ...*
+    Velg varer og pris, hvor prisen er høyere enn gjennomsnittprisen i kategorien.  
+    EN korrelert subquery.
 
 2.  **Spørring (Subquery i `FROM`):**
     ```sql
@@ -211,21 +212,96 @@
     WHERE Gjennomsnittspris > 100;
     ```
     **Forklaring:**
-    *   *... Skriv din forklaring her ...*
+    Viser kategori og gjennomsnittpris for kategorien, der hvor gjennomsnittprisen er over 100.  
+    Subquery i `FROM`, lager em midlertidlig tabell for kategoripriser. 
 
 ### Del 2: Lag SQL-spørringer
 
 1.  **Kunder som har bestilt en spesifikk vare:**
     ```sql
-    -- Skriv din SQL-spørring her
+    SELECT DISTINCT k.fornavn, k.Etternavn
+    FROM kunde k
+    JOIN ordre o ON o.knr = k.knr
+    WHERE o.ordrenr IN (
+        SELECT ordrenr 
+        FROM ordrelinje
+        WHERE vnr = '10820'
+    )
+    ORDER BY k.fornavn;
     ```
 
 2.  **`EXISTS` - Kategorier med dyre varer:**
     ```sql
-    -- Skriv din SQL-spørring her
+    SELECT k.navn
+    FROM kategori k
+    WHERE EXISTS (
+        SELECT 1
+        FROM vare v
+        WHERE v.katnr = k.katnr
+        AND v.pris > 1000
+    );
     ```
 
 3.  **Varer dyrere enn gjennomsnittet:**
     ```sql
-    -- Skriv din SQL-spørring her
+    SELECT betegnelse, pris
+    FROM vare
+    WHERE pris > (
+        SELECT AVG(pris)
+        FROM vare
+    )
+    ORDER BY pris DESC;
     ```
+
+**Ekstraoppgave**
+Kombiner CTE og Window Function: Bruk en CTE til å beregne totalt salgsbeløp per vare (sum av Pris * Antall fra Ordrelinje), og bruk deretter en window function til å rangere varene etter totalt salgsbeløp innenfor hver kategori. Vis topp 3 varer per kategori.
+-- Hint: Bruk RANK() OVER (PARTITION BY ... ORDER BY ...) og filtrer på rang <= 3
+
+```sql
+    WITH salgsbeløp_per_vare AS (
+        SELECT vnr, SUM(prisprenhet * antall) AS total_beløp
+        FROM ordrelinje
+        GROUP BY vnr
+    )
+    SELECT *
+    FROM (        
+        SELECT v.vnr,
+            v.betegnelse,
+            k.navn AS kategori,
+            RANK() OVER (
+                PARTITION BY k.katnr
+                ORDER BY spv.total_beløp DESC
+            ) AS salgsbeløp_rangering
+        FROM salgsbeløp_per_vare spv
+        JOIN vare v ON spv.vnr = v.vnr
+        JOIN kategori k ON v.katnr = k.katnr
+    ) subquery_ranks
+    WHERE salgsbeløp_rangering <= 3
+    ORDER BY kategori, salgsbeløp_rangering;
+```
+
+Alternativ med 2 CTE og RANK
+
+```sql
+    WITH salgsbeløp_per_vare AS (
+        SELECT vnr, SUM(prisprenhet * antall) AS total_beløp
+        FROM ordrelinje
+        GROUP BY vnr
+    )
+    , rangert AS (
+        SELECT v.vnr,
+            v.betegnelse,
+            k.navn AS kategori,
+            RANK() OVER (
+                PARTITION BY k.katnr
+                ORDER BY spv.total_beløp DESC
+            ) AS salgsbeløp_rangering
+        FROM salgsbeløp_per_vare spv
+        JOIN vare v ON spv.vnr = v.vnr
+        JOIN kategori k ON v.katnr = k.katnr
+    )
+    SELECT *
+    FROM rangert
+    WHERE salgsbeløp_rangering <= 3
+    ORDER BY kategori, salgsbeløp_rangering;
+```
